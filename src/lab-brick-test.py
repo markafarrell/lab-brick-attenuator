@@ -4,9 +4,14 @@ import time
 
 from LabBrick.core import Attenuator
 
-def attenuation_response(device, status_byte, count, byteblock):
-	print device.attenuation_level
+def attenuation_change(device, status_byte, count, byteblock, val):
+	print "User Defined Callback for attenuation_level_change"
+	print "Attenuation: " + str(val)
 	
+def attenuation_response(device, status_byte, count, byteblock, val):
+	print "User Defined Callback for attenuation_level_response"
+	print "Attenuation: " + str(val)
+
 if __name__ == '__main__':
 
 	try:
@@ -40,12 +45,13 @@ if __name__ == '__main__':
 			usage()
 
 		att = Attenuator(vid = vid, pid = pid, debug=True)
+		#att = Attenuator(vid = vid, pid = pid, debug=False)
 		
-		print att.serial
+		att.register_callback('attenuation_level_response', attenuation_response)
 		
 		att.get_attenuation(debug=True)
 		
-		att.set_attenuation(5, debug=True)
+		att.register_callback('attenuation_level_change', attenuation_change)
 
 	while 1:
 		att.set_attenuation(5, debug=True)

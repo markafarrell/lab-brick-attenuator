@@ -503,7 +503,9 @@ class Attenuator(object):
 		try:
 			(self.__responses[status_byte])(self, status_byte, count, byteblock, debug)
 		except KeyError:
-			self.__log.write("Status Byte of response not recognised")
+			self.__log.write(self.__read_log_string % ( datetime.now(), 'read_data', status_byte, count, byteblock[0], 
+						byteblock[1], byteblock[2], byteblock[3], byteblock[4], byteblock[5]))
+			self.__log.write("Status Byte of response not recognised\n")
 	
 	def attenuation_level_response(self, status_byte, count, byteblock, debug=False):
 	
@@ -515,15 +517,16 @@ class Attenuator(object):
 			is ignored.
 		"""
 	
-		if status_byte == 0x04:
+		if status_byte == 0x0D:
 			val = byteblock[0]
-		elif status_byte == 0x0D:
-			val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		elif status_byte == 0x04:
+			val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
 
 		if self.__user_defined_callbacks['attenuation_level_response'] != None:
 			self.__user_defined_callbacks['attenuation_level_response'](self, status_byte, count, byteblock, val)
 		
-		self.attenuation_level = val/4.0
+		self.attenuation_level = val
 		
 		if debug:
 			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'attenuation_level_response', 'attenuation=' + str()))
@@ -536,7 +539,7 @@ class Attenuator(object):
 			millisecond intervals
 		"""
 		
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
 		
 		if self.__user_defined_callbacks['ramp_dwell_time_response'] != None:
 			self.__user_defined_callbacks['ramp_dwell_time_response'](self, status_byte, count, byteblock, val)
@@ -553,7 +556,8 @@ class Attenuator(object):
 			DWORD = Upper level of the ram in 0.25 dB units
 		"""
 		
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
 
 		if self.__user_defined_callbacks['ramp_start_attenuation_level_response'] != None:
 			self.__user_defined_callbacks['ramp_start_attenuation_level_response'](self, status_byte, count, byteblock, val)
@@ -570,7 +574,8 @@ class Attenuator(object):
 			DWORD = Upper level of the ram in 0.25 dB units
 		"""
 		
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
 		
 		if self.__user_defined_callbacks['ramp_stop_attenuation_level_response'] != None:
 			self.__user_defined_callbacks['ramp_stop_attenuation_level_response'](self, status_byte, count, byteblock, val)
@@ -587,7 +592,8 @@ class Attenuator(object):
 			DWORD = Attenuation step size in 0.25 dB units.
 		"""
 		
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
 		
 		if self.__user_defined_callbacks['ramp_step_size_response'] != None:
 			self.__user_defined_callbacks['ramp_step_size_response'](self, status_byte, count, byteblock, val)
@@ -606,7 +612,7 @@ class Attenuator(object):
 			operation mode. This time is in 1 millisecond intervals.
 		"""
 	
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
 		
 		if self.__user_defined_callbacks['ramp_wait_time_response'] != None:
 			self.__user_defined_callbacks['ramp_wait_time_response'](self, status_byte, count, byteblock, val)
@@ -632,7 +638,8 @@ class Attenuator(object):
 			Byte = The maximum attenuation level provided by the attenuator.
 		"""
 		
-		val = byteblock[3] << 24 + byteblock[2] << 16 + byteblock[1] << 8 + byteblock[0]
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
 			
 		if self.__user_defined_callbacks['maximum_attenuation_response'] != None:
 			self.__user_defined_callbacks['maximum_attenuation_response'](self, status_byte, count, byteblock, val)
@@ -824,8 +831,6 @@ class Attenuator(object):
 			pass
 	
 	
-	
-	
 	#################################################################################
 	#								CALLBACK VARIABLES								#
 	#################################################################################
@@ -833,6 +838,7 @@ class Attenuator(object):
 	
 	__responses = 	{ 	
 						0x04 : attenuation_level_response,
+						0x0d : attenuation_level_response,
 						0x33 : ramp_dwell_time_response,
 						0x30 : ramp_start_attenuation_level_response,
 						0x31 : ramp_stop_attenuation_level_response,
@@ -865,3 +871,28 @@ class Attenuator(object):
 									'ramp_state_change' : None,
 									'ramp_mode_change' : None
 								}
+
+	def register_callback(self, event, func):
+		""" Register a callback to be called when an event happens 
+			Callback function to be in the format of:
+			callback_function(Attenuator device, int status_byte, 
+				int count, bytearray byteblock) 
+		
+			NOTE: Callback functions are called PRIO to updating the Attenuator object 
+				for get commands. """
+
+		if event in self.__user_defined_callbacks:
+			self.__user_defined_callbacks[event] = func
+			return True
+		else:
+			return False
+
+	def deregister_callback(self, event):
+		""" De-register a callback for an event """
+
+		if event in self.__user_defined_callbacks:
+			self.__user_defined_callbacks[event] = None
+			return True
+		else:
+			return False 
+		
