@@ -74,7 +74,7 @@ class Attenuator(object):
 		self.__pid = pid
 
 		if debug:
-			self.__log.write("vid=" + str(self.__vid) + " pid=" + str(self.__pid) + "\n")
+			self.__log.write("vid=0x%04x pid=0x%04x\n" % (self.__vid, self.__pid)) 
 	
 		# TODO: handle more than on connected lab brick
 		self.__dev = usb.core.find(idVendor=self.__vid, idProduct=self.__pid)
@@ -105,6 +105,7 @@ class Attenuator(object):
 					usb.util.ENDPOINT_IN)
 
 			#Store the serial number of the lab brick
+			
 			self.serial = self.get_serial_number()
 			
 			#Spawn read thread to handle reading for lab brick
@@ -117,7 +118,9 @@ class Attenuator(object):
 		assert self.__read_endpoint is not None
 
 		self.spawn_read_thread(debug)
-		
+
+		assert self.connected == True
+
 	def spawn_read_thread(self, debug=False):
 		"""	Spawn the thread to get responses from the lab brick """
 		
@@ -127,9 +130,8 @@ class Attenuator(object):
 	
 	def get_serial_number(self):
 		"""	Get the serial number of the connected device """
+		return self.__dev.serial_number
 		
-		return usb.util.get_string(self.__dev,256,iSerialNumber)
-	
 	#################################################################################
 	#										READ									#
 	#################################################################################

@@ -46,7 +46,9 @@ if __name__ == '__main__':
 
 		att = Attenuator(vid = vid, pid = pid, debug=True)
 		#att = Attenuator(vid = vid, pid = pid, debug=False)
-		
+
+		print att.get_serial_number()
+
 		att.register_callback('attenuation_level_response', attenuation_response)
 		
 		att.get_attenuation(debug=True)
