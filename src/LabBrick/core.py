@@ -24,9 +24,11 @@ class Attenuator(object):
 	
 	attenuation_level = -1
 	ramp_dwell_time = -1
+	ramp_dwell_time_bidirectional = -1
 	ramp_start_attenuation_level = -1
 	ramp_stop_attenuation_level = -1
 	ramp_step_size = -1
+	ramp_step_size_bidirectional = -1
 	
 	ramp_status = -1
 	
@@ -39,6 +41,7 @@ class Attenuator(object):
 	# 2 - Continuous ramp
 	
 	ramp_wait_time = -1
+	ramp_wait_time_bidirectional = -1
 	
 	maximum_attenuation = -1
 	
@@ -264,6 +267,39 @@ class Attenuator(object):
 		
 		self.send_command(command, count, byteblock, debug)
 	
+	def set_ramp_dwell_time_bidirectional(self, time, debug=False):
+	
+		"""	Set time to dwell at each attenuation level during a ramp in 1 
+			millisecond intervals
+		
+			Input in milliseconds
+		"""
+	
+		command = 0xB7
+		count = 4
+		byteblock = bytearray( [ time & 0xFF, (time >> 8) & 0xFF, (time >> 16) & 0xFF, (time >> 24) & 0xFF, 0x00, 0x00 ] )
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'set_ramp_dwell_time_bidirectional', 'dwell_time=' + str(time)))
+		
+		self.send_command(command, count, byteblock, debug)
+	
+	def get_ramp_dwell_time_bidirectional(self, debug=False):
+	
+		"""	Get time to dwell at each attenuation level during a ramp in 1 
+			millisecond intervals
+		"""
+	
+		#TODO: Check this command byte
+		command = 0x37
+		count = 0
+		byteblock = bytearray( [ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ] )
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'get_ramp_dwell_time_bidirectional', ''))
+		
+		self.send_command(command, count, byteblock, debug)
+	
 	def set_ramp_start_attenuation_level(self, attenuation, debug=False):
 	
 		"""	Set start level of the ramp in 0.25 dB units
@@ -369,10 +405,11 @@ class Attenuator(object):
 			Type 
 			 - 01 for a single ramp
 			 - 02 for continuous ramps.
+			 - 03 for continuous up then down.
 		"""
 	
 		command = 0x89
-		count = 1
+		count = 3
 		byteblock = bytearray( [ type, 0x00, 0x00, 0x00, 0x00, 0x00 ] )
 		
 		if debug:
@@ -398,11 +435,28 @@ class Attenuator(object):
 	
 		self.start_ramp(0x02, debug)
 
+	def start_ramp_down(self, debug=False):
+	
+		""" Start continuous Ramp operation. """
+	
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'start_ramp_continuous', ''))
+	
+		self.start_ramp(0x05, debug)
+
+	def start_ramp_continuous_bidirectional(self, debug=False):
+	
+		""" Start continuous Ramp operation. """
+	
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'start_ramp_continuous', ''))
+	
+		self.start_ramp(0x13, debug)
 	def stop_ramp(self, debug=False):
 	
 		""" Stop ramp operation. """ 
 	
-		command = 0x09
+		command = 0x39
 		count = 1
 		byteblock = bytearray( [ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ] )
 		
@@ -441,6 +495,72 @@ class Attenuator(object):
 		
 		if debug:
 			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'get_ramp_wait_time', ''))
+		
+		self.send_command(command, count, byteblock, debug)
+	
+	def set_ramp_wait_time_bidirectional(self, wait_time, debug=False):
+	
+		""" Set time to wait before starting a new ramp in 1 millisecond intervals, 
+			when continuous ramps are in operation.
+		"""
+	
+		command = 0xB9
+		
+		# Count is documented as 1 but input is specified as a DWORD count=4 makes more sense
+		
+		count = 4
+		byteblock = bytearray( [ wait_time & 0xFF, (wait_time >> 8) & 0xFF, (wait_time >> 16) & 0xFF, (wait_time >> 24) & 0xFF, 0x00, 0x00 ] )
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'set_ramp_wait_time_bidirectional', 'wait_time=' + str(wait_time)))
+		
+		self.send_command(command, count, byteblock, debug)
+	
+	def get_ramp_wait_time_bidirectional(self, debug=False):
+	
+		""" Get time to wait before starting a new ramp in 1 millisecond intervals, 
+			when continuous ramps are in operation.
+		"""
+	
+		command = 0x39
+		count = 0
+		byteblock = bytearray( [ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ] )
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'get_ramp_wait_time_bidirectional', ''))
+		
+		self.send_command(command, count, byteblock, debug)
+	
+	def set_ramp_step_size_bidirectional(self, step_size, debug=False):
+	
+		""" Set the step size for when stepping down.
+		"""
+	
+		command = 0xB8
+		
+		#Round down step size to nearest 0.25dB interval
+		val = int(step_size * 4)
+		
+		byteblock = bytearray( [ val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF, 0x00, 0x00 ] )
+		
+		count = 4
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'set_ramp_step_size_bidirectional', 'step_size=' + str(step_size)))
+		
+		self.send_command(command, count, byteblock, debug)
+	
+	def get_ramp_step_size_bidirectional(self, debug=False):
+	
+		""" Get the step size for when stepping down
+		"""
+	
+		command = 0x38
+		count = 0
+		byteblock = bytearray( [ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ] )
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'get_ramp_step_size_bidirectional', ''))
 		
 		self.send_command(command, count, byteblock, debug)
 	
@@ -551,6 +671,24 @@ class Attenuator(object):
 		if debug:
 			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_dwell_time_response', 'dwell_time=' + str(self.ramp_dwell_time)))
 	
+	def ramp_dwell_time_bidirectional_response(self, status_byte, count, byteblock, debug=False):
+	
+		"""	Status byte = 0x37
+		
+			DWORD = Time to dwell at each attenuation level during a ramp in 1 
+			millisecond intervals
+		"""
+		
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		
+		if self.__user_defined_callbacks['ramp_dwell_time_bidirectional_response'] != None:
+			self.__user_defined_callbacks['ramp_dwell_time_bidirectional_response'](self, status_byte, count, byteblock, val)
+		
+		self.ramp_dwell_time_bidirectional = val
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_dwell_time_response', 'dwell_time=' + str(self.ramp_dwell_time)))
+	
 	def ramp_start_attenuation_level_response(self, status_byte, count, byteblock, debug=False):
 	
 		"""	Status byte = 0x30
@@ -605,6 +743,24 @@ class Attenuator(object):
 		if debug:
 			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_step_size_response', 'step_size=' + str(self.ramp_step_size)))
 	
+	def ramp_step_size_bidirectional_response(self, status_byte, count, byteblock, debug=False):
+	
+		"""	Status byte = 0x37
+		
+			DWORD = Attenuation step size in 0.25 dB units.
+		"""
+		
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		val = val/4.0
+		
+		if self.__user_defined_callbacks['ramp_step_size_bidirectional_response'] != None:
+			self.__user_defined_callbacks['ramp_step_size_bidirectional_response'](self, status_byte, count, byteblock, val)
+		
+		self.ramp_step_size_bidirectional = val
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_step_size_bidirectional_response', 'step_size=' + str(self.ramp_step_size_bidirectional)))
+
 	def ramp_wait_time_response(self, status_byte, count, byteblock, debug=False):
 	
 		"""	Status byte = 0x33
@@ -623,6 +779,25 @@ class Attenuator(object):
 		
 		if debug:
 			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_wait_time_response', 'wait_time=' + str(self.ramp_wait_time)))
+	
+	def ramp_wait_time_bidirectional_response(self, status_byte, count, byteblock, debug=False):
+	
+		"""	Status byte = 0x39
+		
+			DWORD = Time to wait at the end of each attenuation ramp before 
+			beginning another attenuation ramp when the tram is in continuous 
+			operation mode. This time is in 1 millisecond intervals.
+		"""
+	
+		val = (byteblock[3] << 24) + (byteblock[2] << 16) + (byteblock[1] << 8) + byteblock[0]
+		
+		if self.__user_defined_callbacks['ramp_wait_time_bidirectional_response'] != None:
+			self.__user_defined_callbacks['ramp_wait_time_bidirectional_response'](self, status_byte, count, byteblock, val)
+		
+		self.ramp_wait_time_bidirectional = val
+		
+		if debug:
+			self.__log.write(self.__cmd_log_string % ( datetime.now(), 'ramp_wait_time_bidirectional_response', 'wait_time=' + str(self.ramp_wait_time)))
 	
 	def ramp_mode_response(self, status_byte, count, byteblock, debug=False):
 	
@@ -842,10 +1017,13 @@ class Attenuator(object):
 						0x04 : attenuation_level_response,
 						0x0d : attenuation_level_response,
 						0x33 : ramp_dwell_time_response,
+						0x37 : ramp_dwell_time_bidirectional_response,
 						0x30 : ramp_start_attenuation_level_response,
 						0x31 : ramp_stop_attenuation_level_response,
 						0x32 : ramp_step_size_response,
+						0x38 : ramp_step_size_bidirectional_response,
 						0x36 : ramp_wait_time_response,
+						0x39 : ramp_wait_time_bidirectional_response,
 						0x09 : ramp_mode_response,
 						0x0e : status_report
 					}
@@ -860,10 +1038,13 @@ class Attenuator(object):
 	__user_defined_callbacks = 	{ 
 									'attenuation_level_response' : None,
 									'ramp_dwell_time_response' : None,
+									'ramp_dwell_time_bidirectional_response' : None,
 									'ramp_start_attenuation_level_response' : None,
 									'ramp_stop_attenuation_level_response' : None,
 									'ramp_step_size_response' : None,
+									'ramp_step_size_bidirectional_response' : None,
 									'ramp_wait_time_response' : None,
+									'ramp_wait_time_bidirectional_response' : None,
 									'ramp_mode_response' : None,
 									'attenuation_level_change' : None,
 									'pll_lock_change' : None,
